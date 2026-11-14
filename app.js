@@ -18,6 +18,7 @@ const calendarRoutes = require('./backend/routes/calendarRoutes');
 const adminCalendarRoutes = require('./backend/routes/adminCalendarRoutes');
 const adminPaymentRoutes = require('./backend/routes/adminPaymentRoutes');
 const adminBookingRoutes = require('./backend/routes/adminBookingRoutes');
+const customerBookingRoutes = require('./backend/routes/customerBookingRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -38,6 +39,7 @@ app.get('/admin', (req, res) => res.redirect('/admin/html/dashboard.html'));
 app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/bookings', customerBookingRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin/services', adminServiceRoutes);
 app.use('/api/admin/calendar', adminCalendarRoutes);
