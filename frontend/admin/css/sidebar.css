@@ -106,38 +106,3 @@
   gap: 0.6rem;
   padding: 0.25rem 0.5rem;
 }
-
-.sidebar__nav {
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #4a4a50 transparent;
-}
-
-.nav-submenu {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  margin-top: 0.45rem;
-  padding: 0.4rem;
-  color: var(--color-ink);
-  background: #fff;
-  border-radius: var(--radius-md);
-}
-
-.nav-submenu__link {
-  display: block;
-  padding: 0.35rem 0.6rem;
-  font-size: 0.8125rem;
-  border-radius: var(--radius-sm);
-}
-
-.nav-submenu__link:hover {
-  background: #f3f3f5;
-}
-
-.nav-submenu__link--active,
-.nav-submenu__link--active:hover {
-  font-weight: 600;
-  color: var(--color-brand-dark);
-}
