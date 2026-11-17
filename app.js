@@ -18,7 +18,6 @@ const calendarRoutes = require('./backend/routes/calendarRoutes');
 const adminCalendarRoutes = require('./backend/routes/adminCalendarRoutes');
 const adminPaymentRoutes = require('./backend/routes/adminPaymentRoutes');
 const adminBookingRoutes = require('./backend/routes/adminBookingRoutes');
-const adminReportRoutes = require('./backend/routes/adminReportRoutes');
 const customerBookingRoutes = require('./backend/routes/customerBookingRoutes');
 
 const app = express();
@@ -46,7 +45,6 @@ app.use('/api/admin/services', adminServiceRoutes);
 app.use('/api/admin/calendar', adminCalendarRoutes);
 app.use('/api/admin/payments', adminPaymentRoutes);
 app.use('/api/admin/bookings', adminBookingRoutes);
-app.use('/api/admin/reports', adminReportRoutes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ message: 'Endpoint not found.' });
