@@ -3,8 +3,6 @@ const express = require('express');
 require('dotenv').config();
 
 const { testConnection } = require('./backend/config/db');
-const customerModel = require('./backend/models/customerModel');
-const bookingModel = require('./backend/models/bookingModel');
 const dashboardRoutes = require('./backend/routes/dashboardRoutes');
 
 const app = express();

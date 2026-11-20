@@ -90,7 +90,7 @@
     </div>
   </aside>
 
-    <main class="admin-main">
+  <main class="admin-main">
     <header class="page-header">
       <p class="page-header__eyebrow">Dashboard</p>
       <h1 class="page-header__title">Overview</h1>
@@ -136,10 +136,18 @@
           <button class="day-nav__step" type="button" id="nextDay" aria-label="Next day">&gt;</button>
         </div>
       </header>
+
+      <div class="panel schedule" id="schedule" hidden>
+        <div class="schedule__corner"></div>
+        <div class="schedule__services" id="scheduleServices"></div>
+        <ol class="schedule__hours" id="scheduleHours"></ol>
+        <div class="schedule__columns" id="scheduleColumns"></div>
+      </div>
+      <p class="status-message" id="scheduleStatus" role="status" hidden></p>
     </section>
   </main>
 
-    <template id="upcomingItemTemplate">
+  <template id="upcomingItemTemplate">
     <li class="upcoming-item">
       <div class="upcoming-item__date">
         <span class="upcoming-item__month"></span>
@@ -152,6 +160,14 @@
     </li>
   </template>
 
-    <script type="module" src="../js/dashboard.js"></script>
+  <template id="scheduleEventTemplate">
+    <article class="schedule-event">
+      <p class="schedule-event__time"></p>
+      <p class="schedule-event__service"></p>
+      <p class="schedule-event__client"></p>
+    </article>
+  </template>
+
+  <script type="module" src="../js/dashboard.js"></script>
 </body>
 </html>

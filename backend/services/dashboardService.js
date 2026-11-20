@@ -1,9 +1,11 @@
 const bookingModel = require('../models/bookingModel');
 const customerModel = require('../models/customerModel');
-
+const serviceModel = require('../models/serviceModel');
+const { formatMinutes } = require('./timeHelper');
 const {
   BOOKING_STATUS,
   UPCOMING_STATUSES,
+  DAY_SCHEDULE_STATUSES,
   COLLECTIBLE_STATUSES,
 } = require('../config/bookingStatus');
 
@@ -32,4 +34,31 @@ async function getUpcomingBookings() {
   }));
 }
 
-module.exports = { getSummary, getUpcomingBookings };
+function toScheduleEntry(row) {
+  return {
+    id: row.id,
+    serviceName: row.serviceName,
+    clientName: row.clientName,
+    status: row.status,
+    startMinutes: row.startMinutes,
+    endMinutes: row.endMinutes,
+    timeLabel: `${formatMinutes(row.startMinutes)} - ${formatMinutes(row.endMinutes)}`,
+  };
+}
+
+async function getDaySchedule(date) {
+  const [services, entries] = await Promise.all([
+    serviceModel.findActive(),
+    bookingModel.findScheduleEntries(date, DAY_SCHEDULE_STATUSES),
+  ]);
+
+  const columns = services.map(({ serviceId, serviceName }) => ({
+    serviceId,
+    serviceName,
+    bookings: entries.filter((entry) => entry.serviceId === serviceId).map(toScheduleEntry),
+  }));
+
+  return { date, columns };
+}
+
+module.exports = { getSummary, getUpcomingBookings, getDaySchedule };
