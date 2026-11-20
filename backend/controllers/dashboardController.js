@@ -8,4 +8,12 @@ async function getSummary(req, res, next) {
   }
 }
 
-module.exports = { getSummary };
+async function getUpcomingBookings(req, res, next) {
+  try {
+    res.json(await dashboardService.getUpcomingBookings());
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { getSummary, getUpcomingBookings };
