@@ -1,0 +1,1 @@
+export const getJson = (url) => request(url);
