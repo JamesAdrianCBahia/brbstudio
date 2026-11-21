@@ -4,6 +4,9 @@ require('dotenv').config();
 
 const { testConnection } = require('./backend/config/db');
 const dashboardRoutes = require('./backend/routes/dashboardRoutes');
+const customerModel = require('./backend/models/customerModel');
+const authRoutes = require('./backend/routes/authRoutes');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,9 +14,10 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-app.get('/', (req, res) => res.redirect('/customer/html/home.html'));
+app.get('/', (req, res) => res.redirect('/admin/customer/html/register.html'));
 app.get('/admin', (req, res) => res.redirect('/admin/html/dashboard.html'));
 
+app.use('/api/auth', authRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
 
 app.use('/api', (req, res) => {
@@ -36,6 +40,8 @@ app.listen(PORT, async () => {
   try {
     await testConnection();
     console.log('Database connected');
+    const problems = await customerModel.verifySchema();
+    problems.forEach((p) => console.warn(`Database warning: ${p}`));
   } catch (error) {
     console.error(`Database connection failed: ${error.message}`);
   }
