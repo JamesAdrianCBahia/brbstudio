@@ -1,4 +1,66 @@
 const serviceModel = require('../models/serviceModel');
+const imageStorage = require('./imageStorage');
+const AppError = require('./appError');
+
+const MYSQL_DUPLICATE_ENTRY = 'ER_DUP_ENTRY';
+
+const MAX_NAME_LENGTH = 100;
+const MAX_DESCRIPTION_LENGTH = 500;
+const PRICE_PATTERN = /^\d{1,8}(\.\d{1,2})?$/;
+
+const nameTakenError = () =>
+  new AppError('A service with this name already exists.', 409, {
+    name: 'A service with this name already exists.',
+  });
+
+const asText = (value) => String(value ?? '');
+
+function parseBoolean(value, fallback) {
+  if (value === undefined) return fallback;
+  if (typeof value === 'boolean') return value;
+
+  const text = String(value).toLowerCase();
+  if (['true', '1', 'on'].includes(text)) return true;
+  if (['false', '0', 'off'].includes(text)) return false;
+  return fallback;
+}
+
+function normalizeFields(body = {}) {
+  return {
+    name: asText(body.name).trim(),
+    description: asText(body.description).trim(),
+    price: asText(body.price).replace(/[₱,\s]/g, ''),
+    available: body.available,
+    removeImage: parseBoolean(body.removeImage, false),
+  };
+}
+
+function validateFields(fields, file) {
+  const errors = {};
+
+  if (!fields.name) errors.name = 'Service name is required.';
+  else if (fields.name.length > MAX_NAME_LENGTH) {
+    errors.name = `Service name must be ${MAX_NAME_LENGTH} characters or fewer.`;
+  }
+
+  if (!fields.description) errors.description = 'Description is required.';
+  else if (fields.description.length > MAX_DESCRIPTION_LENGTH) {
+    errors.description = `Description must be ${MAX_DESCRIPTION_LENGTH} characters or fewer.`;
+  }
+
+  if (!fields.price) errors.price = 'Price is required.';
+  else if (!PRICE_PATTERN.test(fields.price) || Number(fields.price) <= 0) {
+    errors.price = 'Enter a valid price greater than 0, e.g. 1500 or 1500.50.';
+  }
+
+  if (file && !imageStorage.isSupportedImage(file.buffer)) {
+    errors.image = 'Image must be a JPG, PNG or WEBP file.';
+  }
+
+  if (Object.keys(errors).length > 0) {
+    throw new AppError('Please fix the highlighted fields.', 400, errors);
+  }
+}
 
 function toPublicService(row) {
   return {
@@ -15,6 +77,29 @@ async function listServices() {
   return (await serviceModel.findAll()).map(toPublicService);
 }
 
+async function createService(body, file) {
+  const fields = normalizeFields(body);
+  validateFields(fields, file);
+
+  const imagePath = file ? await imageStorage.saveServiceImage(file.buffer) : null;
+
+  try {
+    const id = await serviceModel.create({
+      ...fields,
+      imagePath,
+      available: parseBoolean(fields.available, true),
+    });
+
+    return toPublicService(await serviceModel.findById(id));
+  } catch (error) {
+    await imageStorage.deleteServiceImage(imagePath);
+
+    if (error.code === MYSQL_DUPLICATE_ENTRY) throw nameTakenError();
+    throw error;
+  }
+}
+
 module.exports = {
   listServices,
+  createService,
 };

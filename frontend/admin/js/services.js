@@ -1,6 +1,8 @@
-import { getJson } from './admin-api.js';
+import { ApiError, deleteRequest, getJson, sendForm, sendJson } from './admin-api.js';
 
 const API_BASE = '/api/admin/services';
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const elements = {
   grid: document.getElementById('serviceGrid'),
@@ -29,6 +31,11 @@ const elements = {
 };
 
 let services = [];
+let editingService = null;
+let removeCurrentImage = false;
+let previewObjectUrl = null;
+
+const findService = (id) => services.find((service) => service.id === Number(id));
 
 function formatPrice(price) {
   const amount = Number(price);
@@ -75,6 +82,104 @@ function renderServices() {
   }
 }
 
+function setPreview(url) {
+  elements.imagePreview.hidden = !url;
+  elements.imagePlaceholder.hidden = Boolean(url);
+  if (url) elements.imagePreview.src = url;
+}
+
+function openServiceDialog(service = null) {
+  editingService = service;
+  removeCurrentImage = false;
+
+  elements.serviceForm.reset();
+  releasePreviewUrl();
+  clearFormErrors();
+
+  elements.serviceDialogTitle.textContent = service ? 'Edit Service' : 'Add Service';
+  elements.serviceForm.elements.name.value = service?.name ?? '';
+  elements.serviceForm.elements.description.value = service?.description ?? '';
+  elements.serviceForm.elements.price.value = service?.price ?? '';
+  elements.availableInput.checked = service ? service.available : true;
+  setAvailabilityLabel(elements.availableLabel, elements.availableInput.checked);
+
+  setPreview(service?.imageUrl ?? null);
+  elements.removeImageButton.hidden = !service?.imageUrl;
+
+  elements.serviceDialog.showModal();
+  elements.serviceForm.elements.name.focus();
+}
+
+function handleImageChosen() {
+  const [file] = elements.imageInput.files;
+  if (!file) return;
+
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type) || file.size > MAX_IMAGE_BYTES) {
+    elements.imageInput.value = '';
+    setFieldError('image', file.size > MAX_IMAGE_BYTES ? 'Image must be 5 MB or smaller.' : 'Image must be a JPG, PNG or WEBP file.');
+    return;
+  }
+
+  elements.imageInput.closest('.field').classList.remove('field--invalid');
+  elements.imageInput.closest('.field').querySelector('.field__error').hidden = true;
+
+  releasePreviewUrl();
+  previewObjectUrl = URL.createObjectURL(file);
+  setPreview(previewObjectUrl);
+
+  removeCurrentImage = false;
+  elements.removeImageButton.hidden = false;
+}
+
+function buildFormData() {
+  const formData = new FormData(elements.serviceForm);
+  const [file] = elements.imageInput.files;
+
+  if (!file) formData.delete('image');
+
+  formData.set('available', elements.availableInput.checked);
+  if (removeCurrentImage) formData.set('removeImage', 'true');
+
+  return formData;
+}
+
+async function handleServiceSubmit(event) {
+  event.preventDefault();
+  clearFormErrors();
+  elements.serviceSubmit.disabled = true;
+
+  try {
+    const formData = buildFormData();
+    const saved = editingService
+      ? await sendForm(`${API_BASE}/${editingService.id}`, 'PUT', formData)
+      : await sendForm(API_BASE, 'POST', formData);
+
+    if (editingService) {
+      replaceService(saved);
+    } else {
+      services.push(saved);
+      renderServices();
+    }
+
+    elements.serviceDialog.close();
+    showToast(editingService ? `${saved.name} was updated.` : `${saved.name} was added.`);
+  } catch (error) {
+    showServiceFormError(error);
+  } finally {
+    elements.serviceSubmit.disabled = false;
+  }
+}
+
+function showServiceFormError(error) {
+  const fieldErrors = error instanceof ApiError ? error.fieldErrors : {};
+  const shown = Object.entries(fieldErrors).map(([name, text]) => setFieldError(name, text));
+
+  if (shown.includes(true)) return;
+
+  elements.serviceFormError.textContent = error.message;
+  elements.serviceFormError.hidden = false;
+}
+
 async function loadServices() {
   try {
     services = await getJson(API_BASE);
@@ -85,5 +190,44 @@ async function loadServices() {
     elements.status.hidden = false;
   }
 }
+
+elements.addButton.addEventListener('click', () => openServiceDialog());
+
+elements.grid.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-action]');
+  if (!button) return;
+
+  const service = findService(button.closest('.service-card').dataset.id);
+
+  if (button.dataset.action === 'edit') openServiceDialog(service);
+  if (button.dataset.action === 'remove') openDeleteDialog(service);
+});
+
+elements.grid.addEventListener('change', (event) => {
+  if (event.target.matches('[data-action="toggle"]')) handleToggle(event.target);
+});
+
+elements.serviceForm.addEventListener('submit', handleServiceSubmit);
+elements.serviceForm.addEventListener('input', ({ target }) => {
+  const field = target.closest('.field');
+  if (!field) return;
+
+  field.classList.remove('field--invalid');
+  field.querySelector('.field__error').hidden = true;
+});
+elements.imageInput.addEventListener('change', handleImageChosen);
+elements.removeImageButton.addEventListener('click', handleRemoveImage);
+elements.availableInput.addEventListener('change', () =>
+  setAvailabilityLabel(elements.availableLabel, elements.availableInput.checked)
+);
+elements.confirmDelete.addEventListener('click', handleConfirmDelete);
+
+document.querySelectorAll('dialog').forEach((dialog) => {
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog || event.target.closest('[data-dialog-close]')) dialog.close();
+  });
+});
+
+elements.serviceDialog.addEventListener('close', releasePreviewUrl);
 
 loadServices();
