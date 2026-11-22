@@ -7,5 +7,6 @@ const router = express.Router();
 router.get('/', serviceController.listAll);
 router.post('/', uploadSingleImage('image'), serviceController.create);
 router.put('/:id', uploadSingleImage('image'), serviceController.update);
+router.patch('/:id/availability', serviceController.setAvailability);
 
 module.exports = router;

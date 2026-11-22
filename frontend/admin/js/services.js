@@ -44,6 +44,10 @@ function formatPrice(price) {
   return `\u20B1 ${amount.toLocaleString('en-PH', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
 }
 
+function setAvailabilityLabel(labelElement, isAvailable) {
+  labelElement.textContent = isAvailable ? 'Active' : 'Inactive';
+}
+
 function createCard(service) {
   const card = elements.cardTemplate.content.firstElementChild.cloneNode(true);
   const image = card.querySelector('.service-card__image');
@@ -88,6 +92,24 @@ function replaceService(updated) {
 
   const oldCard = elements.grid.querySelector(`[data-id="${updated.id}"]`);
   oldCard.replaceWith(createCard(updated));
+}
+
+async function handleToggle(toggle) {
+  const card = toggle.closest('.service-card');
+  const available = toggle.checked;
+
+  toggle.disabled = true;
+
+  try {
+    const updated = await sendJson(`${API_BASE}/${card.dataset.id}/availability`, 'PATCH', { available });
+
+    replaceService(updated);
+    showToast(`${updated.name} is now ${updated.available ? 'active' : 'inactive'}.`);
+  } catch (error) {
+    toggle.checked = !available;
+    toggle.disabled = false;
+    showToast(error.message, 'error');
+  }
 }
 
 function setPreview(url) {

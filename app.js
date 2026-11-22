@@ -3,18 +3,29 @@ const express = require('express');
 require('dotenv').config();
 
 const { testConnection } = require('./backend/config/db');
+const { UPLOADS_ROOT } = require('./backend/config/upload');
 const dashboardRoutes = require('./backend/routes/dashboardRoutes');
+const serviceRoutes = require('./backend/routes/serviceRoutes');
+const adminServiceRoutes = require('./backend/routes/adminServiceRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'frontend')));
+app.use(
+  '/uploads',
+  express.static(UPLOADS_ROOT, {
+    setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff'),
+  })
+);
 
 app.get('/', (req, res) => res.redirect('/customer/html/home.html'));
 app.get('/admin', (req, res) => res.redirect('/admin/html/dashboard.html'));
 
+app.use('/api/services', serviceRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
+app.use('/api/admin/services', adminServiceRoutes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ message: 'Endpoint not found.' });

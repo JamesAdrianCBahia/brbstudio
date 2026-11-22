@@ -1,6 +1,14 @@
 const serviceService = require('../services/serviceManagementService');
 const sendError = require('./errorResponse');
 
+async function listAvailable(req, res, next) {
+  try {
+    res.json(await serviceService.listAvailableServices());
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function listAll(req, res, next) {
   try {
     res.json(await serviceService.listServices());
@@ -25,4 +33,12 @@ async function update(req, res, next) {
   }
 }
 
-module.exports = { listAll, create, update };
+async function setAvailability(req, res, next) {
+  try {
+    res.json(await serviceService.setServiceAvailability(req.params.id, req.body?.available));
+  } catch (error) {
+    sendError(error, res, next);
+  }
+}
+
+module.exports = { listAvailable, listAll, create, update, setAvailability };
