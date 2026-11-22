@@ -157,6 +157,20 @@ function createBookingItem(booking) {
   return item;
 }
 
+function renderToggleButton() {
+  const { day, selectedDate } = state;
+  const isPast = Boolean(selectedDate) && selectedDate < today;
+  const isBlocked = Boolean(day?.blocked);
+  const button = elements.toggleBlock;
+
+  button.disabled = state.busy || !selectedDate || !day || isPast;
+  button.className = `btn btn--block btn--lg ${isBlocked ? 'btn--success' : 'btn--primary'}`;
+  button.innerHTML = isBlocked ? `${ICON_CHECK}Mark as Available` : `${ICON_BAN}Mark as Unavailable`;
+
+  elements.dayNote.hidden = !isPast;
+  elements.dayNote.textContent = "Dates that have already passed can't be changed.";
+}
+
 function renderDayPanel() {
   const { day, selectedDate } = state;
 
@@ -313,6 +327,56 @@ async function refreshAvailability() {
   await Promise.all(tasks);
 }
 
+async function runAction(action, successMessage) {
+  state.busy = true;
+  renderToggleButton();
+
+  try {
+    await action();
+    showToast(successMessage);
+  } catch (error) {
+    showToast(error.message, 'error');
+  } finally {
+    state.busy = false;
+    await refreshAvailability();
+  }
+}
+
+function blockDate(isoDate) {
+  return runAction(
+    () => sendJson(`${API_BASE}/blocked-dates`, 'POST', { date: isoDate }),
+    `${formatLongDate(isoDate)} is now unavailable.`
+  );
+}
+
+function unblockDate(isoDate) {
+  return runAction(
+    () => deleteRequest(`${API_BASE}/blocked-dates/${isoDate}`),
+    `${formatLongDate(isoDate)} is available again.`
+  );
+}
+
+function handleToggleBlock() {
+  const { day, selectedDate } = state;
+  if (!day || !selectedDate) return;
+
+  if (day.blocked) {
+    unblockDate(selectedDate);
+    return;
+  }
+
+  if (day.bookings.length === 0) {
+    blockDate(selectedDate);
+    return;
+  }
+
+  const count = day.bookings.length;
+  elements.blockDialogMessage.textContent =
+    `${formatLongDate(selectedDate)} already has ${count} ${count === 1 ? 'booking' : 'bookings'}. ` +
+    "They stay on the schedule, but customers won't be able to choose this date for new bookings.";
+  elements.blockDialog.showModal();
+}
+
 elements.previousMonth.addEventListener('click', () => stepMonth(-1));
 elements.nextMonth.addEventListener('click', () => stepMonth(1));
 
@@ -387,3 +451,4 @@ renderCalendar();
 renderDayPanel();
 loadMonth();
 loadDay();
+loadBlockedList();
