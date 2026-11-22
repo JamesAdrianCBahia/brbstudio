@@ -40,4 +40,14 @@ async function saveServiceImage(buffer) {
   return `${SERVICE_IMAGE_URL}/${filename}`;
 }
 
-module.exports = { isSupportedImage, saveServiceImage };
+async function deleteServiceImage(imagePath) {
+  if (!imagePath || !imagePath.startsWith(`${SERVICE_IMAGE_URL}/`)) return;
+
+  try {
+    await fs.unlink(path.join(SERVICE_IMAGE_DIR, path.basename(imagePath)));
+  } catch (error) {
+    if (error.code !== 'ENOENT') console.warn(`Could not delete ${imagePath}: ${error.message}`);
+  }
+}
+
+module.exports = { isSupportedImage, saveServiceImage, deleteServiceImage };

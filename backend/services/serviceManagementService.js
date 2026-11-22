@@ -13,6 +13,8 @@ const nameTakenError = () =>
     name: 'A service with this name already exists.',
   });
 
+const notFoundError = () => new AppError('Service not found.', 404);
+
 const asText = (value) => String(value ?? '');
 
 function parseBoolean(value, fallback) {
@@ -99,7 +101,38 @@ async function createService(body, file) {
   }
 }
 
+async function updateService(rawId, body, file) {
+  const id = parseId(rawId);
+  const existing = await serviceModel.findById(id);
+  if (!existing) throw notFoundError();
+
+  const fields = normalizeFields(body);
+  validateFields(fields, file);
+
+  let imagePath = existing.imagePath;
+  if (file) imagePath = await imageStorage.saveServiceImage(file.buffer);
+  else if (fields.removeImage) imagePath = null;
+
+  try {
+    await serviceModel.update(id, {
+      ...fields,
+      imagePath,
+      available: parseBoolean(fields.available, Boolean(existing.available)),
+    });
+  } catch (error) {
+    if (file) await imageStorage.deleteServiceImage(imagePath);
+
+    if (error.code === MYSQL_DUPLICATE_ENTRY) throw nameTakenError();
+    throw error;
+  }
+
+  if (imagePath !== existing.imagePath) await imageStorage.deleteServiceImage(existing.imagePath);
+
+  return toPublicService(await serviceModel.findById(id));
+}
+
 module.exports = {
   listServices,
   createService,
+  updateService,
 };

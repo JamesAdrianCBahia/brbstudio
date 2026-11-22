@@ -22,6 +22,11 @@ async function findAll() {
   return rows;
 }
 
+async function findById(id) {
+  const [[row]] = await pool.query(`SELECT ${SERVICE_FIELDS} FROM service WHERE service_id = ?`, [id]);
+  return row || null;
+}
+
 async function create({ name, description, price, imagePath, available }) {
   const [result] = await pool.query(
     `INSERT INTO service (service_name, description, price, image_path, availability)
@@ -29,6 +34,15 @@ async function create({ name, description, price, imagePath, available }) {
     [name, description, price, imagePath, available ? 1 : 0]
   );
   return result.insertId;
+}
+
+async function update(id, { name, description, price, imagePath, available }) {
+  await pool.query(
+    `UPDATE service
+        SET service_name = ?, description = ?, price = ?, image_path = ?, availability = ?
+      WHERE service_id = ?`,
+    [name, description, price, imagePath, available ? 1 : 0, id]
+  );
 }
 
 async function verifySchema() {
@@ -40,6 +54,8 @@ async function verifySchema() {
 
 module.exports = {
   findAll,
+  findById,
   verifySchema,
   create,
+  update,
 };
