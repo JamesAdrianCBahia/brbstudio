@@ -34,6 +34,17 @@ async function findById(id) {
   return row || null;
 }
 
+async function findActive() {
+  const [rows] = await pool.query(
+    `SELECT service_id AS serviceId,
+            service_name AS serviceName
+       FROM service
+      WHERE availability = 1
+      ORDER BY service_id ASC`
+  );
+  return rows;
+}
+
 async function create({ name, description, price, imagePath, available }) {
   const [result] = await pool.query(
     `INSERT INTO service (service_name, description, price, image_path, availability)
@@ -56,6 +67,20 @@ async function setAvailability(id, available) {
   await pool.query('UPDATE service SET availability = ? WHERE service_id = ?', [available ? 1 : 0, id]);
 }
 
+async function remove(id) {
+  await pool.query('DELETE FROM service WHERE service_id = ?', [id]);
+}
+
+async function hasBookings(id) {
+  try {
+    const [[row]] = await pool.query('SELECT COUNT(*) AS total FROM booking_service WHERE service_id = ?', [id]);
+    return row.total > 0;
+  } catch (error) {
+    if (error.code === 'ER_NO_SUCH_TABLE' || error.code === 'ER_BAD_FIELD_ERROR') return false;
+    throw error;
+  }
+}
+
 async function verifySchema() {
   const { problems } = await findMissingColumnProblems('service', REQUIRED_COLUMNS);
 
@@ -67,8 +92,11 @@ module.exports = {
   findAll,
   findAvailable,
   findById,
+  findActive,
   create,
   update,
   setAvailability,
+  remove,
+  hasBookings,
   verifySchema,
 };

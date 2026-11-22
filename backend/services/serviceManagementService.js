@@ -3,6 +3,7 @@ const imageStorage = require('./imageStorage');
 const AppError = require('./appError');
 
 const MYSQL_DUPLICATE_ENTRY = 'ER_DUP_ENTRY';
+const MYSQL_ROW_IS_REFERENCED = 'ER_ROW_IS_REFERENCED_2';
 
 const MAX_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
@@ -12,6 +13,12 @@ const nameTakenError = () =>
   new AppError('A service with this name already exists.', 409, {
     name: 'A service with this name already exists.',
   });
+
+const hasBookingsError = () =>
+  new AppError(
+    "This service already has bookings, so it can't be removed. Set it to Inactive instead.",
+    409
+  );
 
 const notFoundError = () => new AppError('Service not found.', 404);
 
@@ -25,6 +32,12 @@ function parseBoolean(value, fallback) {
   if (['true', '1', 'on'].includes(text)) return true;
   if (['false', '0', 'off'].includes(text)) return false;
   return fallback;
+}
+
+function parseId(value) {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id < 1) throw notFoundError();
+  return id;
 }
 
 function normalizeFields(body = {}) {
@@ -147,10 +160,28 @@ async function setServiceAvailability(rawId, available) {
   return toPublicService(await serviceModel.findById(id));
 }
 
+async function deleteService(rawId) {
+  const id = parseId(rawId);
+  const existing = await serviceModel.findById(id);
+  if (!existing) throw notFoundError();
+
+  if (await serviceModel.hasBookings(id)) throw hasBookingsError();
+
+  try {
+    await serviceModel.remove(id);
+  } catch (error) {
+    if (error.code === MYSQL_ROW_IS_REFERENCED) throw hasBookingsError();
+    throw error;
+  }
+
+  await imageStorage.deleteServiceImage(existing.imagePath);
+}
+
 module.exports = {
   listServices,
   listAvailableServices,
   createService,
   updateService,
   setServiceAvailability,
+  deleteService,
 };
