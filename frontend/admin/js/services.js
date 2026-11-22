@@ -3,6 +3,7 @@ import { ApiError, deleteRequest, getJson, sendForm, sendJson } from './admin-ap
 const API_BASE = '/api/admin/services';
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const TOAST_DURATION_MS = 3500;
 
 const elements = {
   grid: document.getElementById('serviceGrid'),
@@ -32,8 +33,10 @@ const elements = {
 
 let services = [];
 let editingService = null;
+let serviceToDelete = null;
 let removeCurrentImage = false;
 let previewObjectUrl = null;
+let toastTimer = null;
 
 const findService = (id) => services.find((service) => service.id === Number(id));
 
@@ -42,6 +45,18 @@ function formatPrice(price) {
   const decimals = Number.isInteger(amount) ? 0 : 2;
 
   return `\u20B1 ${amount.toLocaleString('en-PH', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+}
+
+function showToast(message, type = 'success') {
+  clearTimeout(toastTimer);
+
+  elements.toast.textContent = message;
+  elements.toast.classList.toggle('toast--error', type === 'error');
+  elements.toast.hidden = false;
+
+  toastTimer = setTimeout(() => {
+    elements.toast.hidden = true;
+  }, TOAST_DURATION_MS);
 }
 
 function setAvailabilityLabel(labelElement, isAvailable) {
@@ -94,6 +109,17 @@ function replaceService(updated) {
   oldCard.replaceWith(createCard(updated));
 }
 
+async function loadServices() {
+  try {
+    services = await getJson(API_BASE);
+    renderServices();
+  } catch (error) {
+    console.error('Could not load services:', error);
+    elements.status.textContent = 'Unable to load services. Please refresh the page.';
+    elements.status.hidden = false;
+  }
+}
+
 async function handleToggle(toggle) {
   const card = toggle.closest('.service-card');
   const available = toggle.checked;
@@ -116,6 +142,34 @@ function setPreview(url) {
   elements.imagePreview.hidden = !url;
   elements.imagePlaceholder.hidden = Boolean(url);
   if (url) elements.imagePreview.src = url;
+}
+
+function releasePreviewUrl() {
+  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+  previewObjectUrl = null;
+}
+
+function clearFormErrors() {
+  elements.serviceFormError.hidden = true;
+
+  elements.serviceForm.querySelectorAll('.field').forEach((field) => {
+    field.classList.remove('field--invalid');
+    const message = field.querySelector('.field__error');
+    if (message) message.hidden = true;
+  });
+}
+
+function setFieldError(fieldName, text) {
+  const input = elements.serviceForm.elements[fieldName];
+  const field = input?.closest('.field');
+  const message = field?.querySelector('.field__error');
+
+  if (!message) return false;
+
+  field.classList.add('field--invalid');
+  message.textContent = text;
+  message.hidden = false;
+  return true;
 }
 
 function openServiceDialog(service = null) {
@@ -219,14 +273,34 @@ function showServiceFormError(error) {
   elements.serviceFormError.hidden = false;
 }
 
-async function loadServices() {
+function openDeleteDialog(service) {
+  serviceToDelete = service;
+
+  elements.deleteMessage.textContent =
+    `"${service.name}" will be permanently removed from the catalog. This can't be undone. ` +
+    'If you only want to hide it from customers, set it to Inactive instead.';
+  elements.deleteError.hidden = true;
+  elements.confirmDelete.disabled = false;
+
+  elements.deleteDialog.showModal();
+}
+
+async function handleConfirmDelete() {
+  elements.confirmDelete.disabled = true;
+  elements.deleteError.hidden = true;
+
   try {
-    services = await getJson(API_BASE);
+    await deleteRequest(`${API_BASE}/${serviceToDelete.id}`);
+
+    services = services.filter((service) => service.id !== serviceToDelete.id);
     renderServices();
+
+    elements.deleteDialog.close();
+    showToast(`${serviceToDelete.name} was removed.`);
   } catch (error) {
-    console.error('Could not load services:', error);
-    elements.status.textContent = 'Unable to load services. Please refresh the page.';
-    elements.status.hidden = false;
+    elements.deleteError.textContent = error.message;
+    elements.deleteError.hidden = false;
+    elements.confirmDelete.disabled = false;
   }
 }
 

@@ -41,4 +41,13 @@ async function setAvailability(req, res, next) {
   }
 }
 
-module.exports = { listAvailable, listAll, create, update, setAvailability };
+async function remove(req, res, next) {
+  try {
+    await serviceService.deleteService(req.params.id);
+    res.status(204).end();
+  } catch (error) {
+    sendError(error, res, next);
+  }
+}
+
+module.exports = { listAvailable, listAll, create, update, setAvailability, remove };
