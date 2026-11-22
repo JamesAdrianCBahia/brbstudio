@@ -82,6 +82,14 @@ function renderServices() {
   }
 }
 
+function replaceService(updated) {
+  const index = services.findIndex((service) => service.id === updated.id);
+  services[index] = updated;
+
+  const oldCard = elements.grid.querySelector(`[data-id="${updated.id}"]`);
+  oldCard.replaceWith(createCard(updated));
+}
+
 function setPreview(url) {
   elements.imagePreview.hidden = !url;
   elements.imagePlaceholder.hidden = Boolean(url);
@@ -129,6 +137,15 @@ function handleImageChosen() {
 
   removeCurrentImage = false;
   elements.removeImageButton.hidden = false;
+}
+
+function handleRemoveImage() {
+  elements.imageInput.value = '';
+  releasePreviewUrl();
+  setPreview(null);
+
+  removeCurrentImage = Boolean(editingService?.imageUrl);
+  elements.removeImageButton.hidden = true;
 }
 
 function buildFormData() {

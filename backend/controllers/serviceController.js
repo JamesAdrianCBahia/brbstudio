@@ -17,4 +17,12 @@ async function create(req, res, next) {
   }
 }
 
-module.exports = { listAll, create };
+async function update(req, res, next) {
+  try {
+    res.json(await serviceService.updateService(req.params.id, req.body, req.file));
+  } catch (error) {
+    sendError(error, res, next);
+  }
+}
+
+module.exports = { listAll, create, update };
