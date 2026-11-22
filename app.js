@@ -9,12 +9,16 @@ const serviceRoutes = require('./backend/routes/serviceRoutes');
 const adminServiceRoutes = require('./backend/routes/adminServiceRoutes');
 const customerModel = require('./backend/models/customerModel');
 const authRoutes = require('./backend/routes/authRoutes');
+const sessionMiddleware = require('./backend/config/session');
+const customerRoutes = require('./backend/routes/customerRoutes');
+
 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(sessionMiddleware);
 app.use(express.static(path.join(__dirname, 'frontend')));
 app.use(
   '/uploads',
@@ -23,13 +27,15 @@ app.use(
   })
 );
 
-app.get('/', (req, res) => res.redirect('/admin/customer/html/register.html'));
+app.get('/', (req, res) => res.redirect('/customer/html/login.html'));
 app.get('/admin', (req, res) => res.redirect('/admin/html/dashboard.html'));
 
 app.use('/api/services', serviceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin/services', adminServiceRoutes);
+app.use('/api/customer', customerRoutes);
+
 
 app.use('/api', (req, res) => {
   res.status(404).json({ message: 'Endpoint not found.' });
