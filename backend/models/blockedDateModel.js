@@ -14,6 +14,17 @@ async function findBetween(startDate, endDate) {
   return rows.map((row) => row.date);
 }
 
+async function findFrom(startDate) {
+  const [rows] = await pool.query(
+    `SELECT DATE_FORMAT(blocked_on, '%Y-%m-%d') AS date
+       FROM blocked_date
+      WHERE blocked_on >= ?
+      ORDER BY blocked_on`,
+    [startDate]
+  );
+  return rows.map((row) => row.date);
+}
+
 async function exists(date) {
   const [[row]] = await pool.query('SELECT COUNT(*) AS total FROM blocked_date WHERE blocked_on = ?', [date]);
   return row.total > 0;
@@ -35,4 +46,4 @@ async function verifySchema() {
   return problems;
 }
 
-module.exports = { findBetween, exists, create, remove, verifySchema };
+module.exports = { findBetween, findFrom, exists, create, remove, verifySchema };

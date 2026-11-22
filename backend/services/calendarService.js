@@ -5,6 +5,7 @@ const { CALENDAR_STATUSES, UPCOMING_STATUSES } = require('../config/bookingStatu
 const { formatMinutes, isValidIsoDate, todayIso } = require('./timeHelper');
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+const MYSQL_DUPLICATE_ENTRY = 'ER_DUP_ENTRY';
 
 function requireDate(value) {
   if (!isValidIsoDate(value)) {
@@ -82,6 +83,10 @@ async function getPublicDayAvailability(date) {
   };
 }
 
+function listUpcomingBlockedDates() {
+  return blockedDateModel.findFrom(todayIso());
+}
+
 async function blockDate(date) {
   requireDate(date);
 
@@ -114,6 +119,7 @@ module.exports = {
   getBlockedDatesInMonth,
   getDayDetails,
   getPublicDayAvailability,
+  listUpcomingBlockedDates,
   blockDate,
   unblockDate,
 };
