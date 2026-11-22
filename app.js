@@ -7,6 +7,9 @@ const { UPLOADS_ROOT } = require('./backend/config/upload');
 const dashboardRoutes = require('./backend/routes/dashboardRoutes');
 const serviceRoutes = require('./backend/routes/serviceRoutes');
 const adminServiceRoutes = require('./backend/routes/adminServiceRoutes');
+const customerModel = require('./backend/models/customerModel');
+const authRoutes = require('./backend/routes/authRoutes');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,10 +23,11 @@ app.use(
   })
 );
 
-app.get('/', (req, res) => res.redirect('/customer/html/home.html'));
+app.get('/', (req, res) => res.redirect('/admin/customer/html/register.html'));
 app.get('/admin', (req, res) => res.redirect('/admin/html/dashboard.html'));
 
 app.use('/api/services', serviceRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin/services', adminServiceRoutes);
 
@@ -47,6 +51,8 @@ app.listen(PORT, async () => {
   try {
     await testConnection();
     console.log('Database connected');
+    const problems = await customerModel.verifySchema();
+    problems.forEach((p) => console.warn(`Database warning: ${p}`));
   } catch (error) {
     console.error(`Database connection failed: ${error.message}`);
   }
