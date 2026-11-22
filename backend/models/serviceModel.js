@@ -22,6 +22,13 @@ async function findAll() {
   return rows;
 }
 
+async function findAvailable() {
+  const [rows] = await pool.query(
+    `SELECT ${SERVICE_FIELDS} FROM service WHERE availability = 1 ORDER BY service_id ASC`
+  );
+  return rows;
+}
+
 async function findById(id) {
   const [[row]] = await pool.query(`SELECT ${SERVICE_FIELDS} FROM service WHERE service_id = ?`, [id]);
   return row || null;
@@ -45,6 +52,10 @@ async function update(id, { name, description, price, imagePath, available }) {
   );
 }
 
+async function setAvailability(id, available) {
+  await pool.query('UPDATE service SET availability = ? WHERE service_id = ?', [available ? 1 : 0, id]);
+}
+
 async function verifySchema() {
   const { problems } = await findMissingColumnProblems('service', REQUIRED_COLUMNS);
 
@@ -54,8 +65,10 @@ async function verifySchema() {
 
 module.exports = {
   findAll,
+  findAvailable,
   findById,
-  verifySchema,
   create,
   update,
+  setAvailability,
+  verifySchema,
 };

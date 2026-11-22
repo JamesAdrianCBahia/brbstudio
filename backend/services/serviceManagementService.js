@@ -79,6 +79,10 @@ async function listServices() {
   return (await serviceModel.findAll()).map(toPublicService);
 }
 
+async function listAvailableServices() {
+  return (await serviceModel.findAvailable()).map(toPublicService);
+}
+
 async function createService(body, file) {
   const fields = normalizeFields(body);
   validateFields(fields, file);
@@ -131,8 +135,22 @@ async function updateService(rawId, body, file) {
   return toPublicService(await serviceModel.findById(id));
 }
 
+async function setServiceAvailability(rawId, available) {
+  const id = parseId(rawId);
+
+  if (typeof available !== 'boolean') {
+    throw new AppError('Availability must be true or false.', 400);
+  }
+  if (!(await serviceModel.findById(id))) throw notFoundError();
+
+  await serviceModel.setAvailability(id, available);
+  return toPublicService(await serviceModel.findById(id));
+}
+
 module.exports = {
   listServices,
+  listAvailableServices,
   createService,
   updateService,
+  setServiceAvailability,
 };
