@@ -198,6 +198,24 @@ function renderDayPanel() {
   renderToggleButton();
 }
 
+function renderBlockedList(blockedDates) {
+  const items = blockedDates.map((isoDate) => {
+    const item = elements.blockedTemplate.content.firstElementChild.cloneNode(true);
+    const dateButton = item.querySelector('.blocked-item__date');
+    const removeButton = item.querySelector('.blocked-item__remove');
+
+    dateButton.textContent = formatLongDate(isoDate);
+    dateButton.dataset.date = isoDate;
+    removeButton.dataset.date = isoDate;
+    removeButton.setAttribute('aria-label', `Remove block on ${formatLongDate(isoDate)}`);
+
+    return item;
+  });
+
+  elements.blockedList.replaceChildren(...items);
+  elements.blockedEmpty.hidden = blockedDates.length > 0;
+}
+
 async function loadMonth() {
   const requestId = ++latestMonthRequest;
 
@@ -227,6 +245,14 @@ async function loadDay() {
     renderDayPanel();
   } catch (error) {
     if (requestId === latestDayRequest) showToast(error.message, 'error');
+  }
+}
+
+async function loadBlockedList() {
+  try {
+    renderBlockedList(await getJson(`${API_BASE}/blocked-dates`));
+  } catch (error) {
+    showToast(error.message, 'error');
   }
 }
 
