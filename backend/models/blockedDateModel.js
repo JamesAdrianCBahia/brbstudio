@@ -14,6 +14,11 @@ async function findBetween(startDate, endDate) {
   return rows.map((row) => row.date);
 }
 
+async function exists(date) {
+  const [[row]] = await pool.query('SELECT COUNT(*) AS total FROM blocked_date WHERE blocked_on = ?', [date]);
+  return row.total > 0;
+}
+
 async function verifySchema() {
   const { problems } = await findMissingColumnProblems('blocked_date', REQUIRED_COLUMNS);
 
@@ -21,4 +26,4 @@ async function verifySchema() {
   return problems;
 }
 
-module.exports = { findBetween, verifySchema };
+module.exports = { findBetween, exists, verifySchema };

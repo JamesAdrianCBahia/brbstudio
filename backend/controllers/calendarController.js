@@ -9,6 +9,15 @@ async function getMonthOverview(req, res, next) {
   }
 }
 
+async function getDayDetails(req, res, next) {
+  try {
+    res.json(await calendarService.getDayDetails(req.query.date));
+  } catch (error) {
+    sendError(error, res, next);
+  }
+}
+
 module.exports = {
-  getMonthOverview
+  getMonthOverview,
+  getDayDetails
 };
