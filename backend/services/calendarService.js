@@ -47,6 +47,12 @@ async function getMonthOverview(month) {
   return { month, bookedDates, blockedDates };
 }
 
+async function getBlockedDatesInMonth(month) {
+  const { start, end } = monthRange(month);
+
+  return { month, blockedDates: await blockedDateModel.findBetween(start, end) };
+}
+
 async function getDayDetails(date) {
   requireDate(date);
 
@@ -58,7 +64,56 @@ async function getDayDetails(date) {
   return { date, blocked, bookings: bookings.map(toBookingSummary) };
 }
 
+async function getPublicDayAvailability(date) {
+  requireDate(date);
+
+  const [bookedServices, blocked] = await Promise.all([
+    bookingModel.findBookedServices(date, UPCOMING_STATUSES),
+    blockedDateModel.exists(date),
+  ]);
+
+  return {
+    date,
+    blocked,
+    booked: bookedServices.map((row) => ({
+      serviceName: row.serviceName,
+      timeLabel: `${formatMinutes(row.startMinutes)} - ${formatMinutes(row.endMinutes)}`,
+    })),
+  };
+}
+
+async function blockDate(date) {
+  requireDate(date);
+
+  if (date < todayIso()) {
+    const message = "A date that has already passed can't be blocked.";
+    throw new AppError(message, 400, { date: message });
+  }
+
+  try {
+    await blockedDateModel.create(date);
+  } catch (error) {
+    if (error.code === MYSQL_DUPLICATE_ENTRY) {
+      const message = 'This date is already blocked.';
+      throw new AppError(message, 409, { date: message });
+    }
+    throw error;
+  }
+
+  return { date };
+}
+
+async function unblockDate(date) {
+  requireDate(date);
+
+  if (!(await blockedDateModel.remove(date))) throw new AppError('This date is not blocked.', 404);
+}
+
 module.exports = {
   getMonthOverview,
-  getDayDetails
+  getBlockedDatesInMonth,
+  getDayDetails,
+  getPublicDayAvailability,
+  blockDate,
+  unblockDate,
 };

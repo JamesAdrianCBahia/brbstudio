@@ -17,7 +17,35 @@ async function getDayDetails(req, res, next) {
   }
 }
 
+async function getPublicDayAvailability(req, res, next) {
+  try {
+    res.json(await calendarService.getPublicDayAvailability(req.query.date));
+  } catch (error) {
+    sendError(error, res, next);
+  }
+}
+
+async function blockDate(req, res, next) {
+  try {
+    res.status(201).json(await calendarService.blockDate(req.body?.date));
+  } catch (error) {
+    sendError(error, res, next);
+  }
+}
+
+async function unblockDate(req, res, next) {
+  try {
+    await calendarService.unblockDate(req.params.date);
+    res.status(204).end();
+  } catch (error) {
+    sendError(error, res, next);
+  }
+}
+
 module.exports = {
   getMonthOverview,
-  getDayDetails
+  getDayDetails,
+  getPublicDayAvailability,
+  blockDate,
+  unblockDate,
 };

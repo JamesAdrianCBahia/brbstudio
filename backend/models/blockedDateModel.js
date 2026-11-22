@@ -19,6 +19,15 @@ async function exists(date) {
   return row.total > 0;
 }
 
+async function create(date) {
+  await pool.query('INSERT INTO blocked_date (blocked_on) VALUES (?)', [date]);
+}
+
+async function remove(date) {
+  const [result] = await pool.query('DELETE FROM blocked_date WHERE blocked_on = ?', [date]);
+  return result.affectedRows > 0;
+}
+
 async function verifySchema() {
   const { problems } = await findMissingColumnProblems('blocked_date', REQUIRED_COLUMNS);
 
@@ -26,4 +35,4 @@ async function verifySchema() {
   return problems;
 }
 
-module.exports = { findBetween, exists, verifySchema };
+module.exports = { findBetween, exists, create, remove, verifySchema };
