@@ -1,7 +1,11 @@
-import { getJson } from './admin-api.js';
+import { deleteRequest, getJson, sendJson } from './admin-api.js';
 
 const API_BASE = '/api/admin/calendar';
+const TOAST_DURATION_MS = 3500;
 const KEEP_SELECTION_AREAS = '.calendar, .day-panel, .blocked-panel, .sidebar, dialog, .toast';
+
+const ICON_BAN = '<span class="btn__icon btn__icon--ban" aria-hidden="true"></span>';
+const ICON_CHECK = '<span class="btn__icon btn__icon--check" aria-hidden="true"></span>';
 
 const monthTitleFormat = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
 const longDateFormat = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -66,6 +70,18 @@ let toastTimer = null;
 
 const monthKey = () => `${state.year}-${pad(state.month + 1)}`;
 
+function showToast(message, type = 'success') {
+  clearTimeout(toastTimer);
+
+  elements.toast.textContent = message;
+  elements.toast.classList.toggle('toast--error', type === 'error');
+  elements.toast.hidden = false;
+
+  toastTimer = setTimeout(() => {
+    elements.toast.hidden = true;
+  }, TOAST_DURATION_MS);
+}
+
 function describeDay(isoDate) {
   const parts = [formatLongDate(isoDate)];
 
@@ -127,6 +143,47 @@ function renderCalendar() {
   elements.grid.replaceChildren(...cells);
 }
 
+function createBookingItem(booking) {
+  const item = elements.bookingTemplate.content.firstElementChild.cloneNode(true);
+  const status = item.querySelector('.booking-item__status');
+
+  item.querySelector('.booking-item__time').textContent = booking.timeLabel;
+  item.querySelector('.booking-item__client').textContent = booking.clientName;
+  item.querySelector('.booking-item__services').textContent = booking.services;
+
+  status.textContent = booking.status;
+  status.classList.add(`booking-item__status--${booking.status.toLowerCase().replace(/\s+/g, '-')}`);
+
+  return item;
+}
+
+function renderDayPanel() {
+  const { day, selectedDate } = state;
+
+  if (!selectedDate) {
+    elements.dayTitle.textContent = 'No date selected';
+    elements.bookingList.replaceChildren();
+    elements.bookingEmpty.textContent = 'Select a date on the calendar to see its bookings.';
+    elements.bookingEmpty.hidden = false;
+    renderToggleButton();
+    return;
+  }
+
+  elements.dayTitle.textContent = formatLongDate(selectedDate);
+
+  if (!day) {
+    elements.bookingList.replaceChildren();
+    elements.bookingEmpty.textContent = 'Loading bookings...';
+    elements.bookingEmpty.hidden = false;
+  } else {
+    elements.bookingList.replaceChildren(...day.bookings.map(createBookingItem));
+    elements.bookingEmpty.textContent = 'No bookings on this date.';
+    elements.bookingEmpty.hidden = day.bookings.length > 0;
+  }
+
+  renderToggleButton();
+}
+
 async function loadMonth() {
   const requestId = ++latestMonthRequest;
 
@@ -140,6 +197,41 @@ async function loadMonth() {
   } catch (error) {
     if (requestId === latestMonthRequest) showToast(error.message, 'error');
   }
+}
+
+async function loadDay() {
+  const date = state.selectedDate;
+  if (!date) return;
+
+  const requestId = ++latestDayRequest;
+
+  try {
+    const day = await getJson(`${API_BASE}/day?date=${date}`);
+    if (requestId !== latestDayRequest || state.selectedDate !== date) return;
+
+    state.day = day;
+    renderDayPanel();
+  } catch (error) {
+    if (requestId === latestDayRequest) showToast(error.message, 'error');
+  }
+}
+
+function selectDate(isoDate) {
+  state.selectedDate = isoDate;
+  state.day = null;
+
+  renderCalendar();
+  renderDayPanel();
+  loadDay();
+}
+
+function clearSelection() {
+  latestDayRequest += 1;
+  state.selectedDate = null;
+  state.day = null;
+
+  renderCalendar();
+  renderDayPanel();
 }
 
 function goToMonth(year, month) {
@@ -207,6 +299,18 @@ function closeMonthPicker({ restoreFocus = false } = {}) {
 function shiftPickerYear(step) {
   state.pickerYear += step;
   renderMonthPicker();
+}
+
+async function refreshAvailability() {
+  const tasks = [loadMonth(), loadBlockedList()];
+
+  if (state.selectedDate) {
+    state.day = null;
+    renderDayPanel();
+    tasks.push(loadDay());
+  }
+
+  await Promise.all(tasks);
 }
 
 elements.previousMonth.addEventListener('click', () => stepMonth(-1));
@@ -280,4 +384,6 @@ document.addEventListener('keydown', (event) => {
 });
 
 renderCalendar();
+renderDayPanel();
 loadMonth();
+loadDay();
