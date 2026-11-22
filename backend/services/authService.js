@@ -4,9 +4,11 @@ const AppError = require('./appError');
 const SALT_ROUNDS = 10;
 const MYSQL_DUPLICATE_ENTRY = 'ER_DUP_ENTRY';
 const LOGIN_PAGE = '/customer/html/login.html';
+const CUSTOMER_HOME = '/customer/html/profile.html';
 const NAME_PATTERN    = /^\p{L}[\p{L} .'-]*$/u;
 const EMAIL_PATTERN   = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CONTACT_PATTERN = /^09\d{9}$/;
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', SALT_ROUNDS);
 const asText = (value) => String(value ?? '');
 
 function normalizeRegistration(body = {}) {
@@ -100,4 +102,21 @@ async function registerCustomer(body) {
   }
 }
 
-module.exports = { LOGIN_PAGE, registerCustomer };
+async function authenticateCustomer(body = {}) {
+  const email    = asText(body.email).trim().toLowerCase();
+  const password = asText(body.password);
+
+  const errors = {};
+  if (!email)    errors.email    = 'Email address is required.';
+  if (!password) errors.password = 'Password is required.';
+  if (Object.keys(errors).length > 0) throw new AppError('Please enter your email address and password.', 400, errors);
+
+  const customer = await customerModel.findByEmail(email);
+  const passwordMatches = await bcrypt.compare(password, customer ? customer.passwordHash : DUMMY_HASH);
+  if (!customer || !passwordMatches) throw new AppError('Invalid email or password.', 401);
+
+  return toPublicProfile(customer);
+}
+
+module.exports = { LOGIN_PAGE, CUSTOMER_HOME, registerCustomer, authenticateCustomer };
+
