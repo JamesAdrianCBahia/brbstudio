@@ -13,6 +13,7 @@ const calendarRoutes = require('./backend/routes/calendarRoutes');
 const adminCalendarRoutes = require('./backend/routes/adminCalendarRoutes');
 const sessionMiddleware = require('./backend/config/session');
 const customerRoutes = require('./backend/routes/customerRoutes');
+const serviceModel = require('./backend/models/serviceModel');
 
 
 
@@ -29,7 +30,7 @@ app.use(
   })
 );
 
-app.get('/', (req, res) => res.redirect('/customer/html/login.html'));
+app.get('/', (req, res) => res.redirect('/customer/html/home.html'));
 app.get('/admin', (req, res) => res.redirect('/admin/html/dashboard.html'));
 
 app.use('/api/services', serviceRoutes);
@@ -39,6 +40,7 @@ app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/admin/services', adminServiceRoutes);
 app.use('/api/admin/calendar', adminCalendarRoutes);
 app.use('/api/customer', customerRoutes);
+app.use('/api/services', serviceRoutes);
 
 
 app.use('/api', (req, res) => {
