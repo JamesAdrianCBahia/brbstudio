@@ -1,3 +1,51 @@
+function readQuery(query) {
+  const defaults = defaultRange();
+  const from = asText(query.from) || defaults.from;
+  const to = asText(query.to) || defaults.to;
+  const errors = {};
+
+  if (!MONTH_PATTERN.test(from)) errors.from = 'Choose a valid month.';
+  if (!MONTH_PATTERN.test(to)) errors.to = 'Choose a valid month.';
+
+  if (Object.keys(errors).length === 0) {
+    const months = monthNumber(to) - monthNumber(from) + 1;
+
+    if (months < 1) errors.to = 'The last month cannot be earlier than the first month.';
+    else if (months > MAX_RANGE_MONTHS) errors.to = `Choose a range of up to ${MAX_RANGE_MONTHS} months.`;
+  }
+
+  if (Object.keys(errors).length > 0) {
+    throw new AppError('Please choose a valid date range.', 400, errors);
+  }
+
+  const serviceText = asText(query.serviceId);
+  const serviceId = serviceText ? Number(serviceText) : null;
+
+  if (serviceText && (!Number.isInteger(serviceId) || serviceId < 1)) {
+    throw new AppError('Service not found.', 404);
+  }
+
+  return { from, to, serviceId };
+}
+
+function toDateRange(from, to) {
+  const [toYear, toMonth] = to.split('-').map(Number);
+  const lastDay = new Date(toYear, toMonth, 0).getDate();
+
+  return { startDate: `${from}-01`, endDate: `${to}-${String(lastDay).padStart(2, '0')}` };
+}
+
+function listMonths(from, to) {
+  const months = [];
+
+  for (let number = monthNumber(from); number <= monthNumber(to); number += 1) {
+    months.push(toMonthKey(Math.floor(number / 12), number % 12));
+  }
+
+  return months;
+}
+
+
 function toMonthlyIncome(months, rows) {
   const incomeByMonth = new Map(rows.map((row) => [row.month, toCents(row.income)]));
 
