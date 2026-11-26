@@ -1,3 +1,16 @@
+const AppError = require('./appError');
+const { PAYABLE_STATUSES } = require('../config/bookingRules');
+const reportModel = require('../models/reportModel');
+const serviceModel = require('../models/serviceModel');
+const { toCents, fromCents } = require('./money');
+
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+const MAX_RANGE_MONTHS = 12;
+
+const asText = (value) => String(value ?? '').trim();
+
+const toMonthKey = (year, monthIndex) => `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+
 function readQuery(query) {
   const defaults = defaultRange();
   const from = asText(query.from) || defaults.from;
@@ -98,3 +111,5 @@ async function getReport(query = {}) {
     })),
   };
 }
+
+module.exports = { getReport };
