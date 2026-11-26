@@ -1,3 +1,8 @@
+function updateDiscountPrefix() {
+  elements.discountPrefix.textContent = elements.voucherForm.elements.discountType.value === 'Percentage' ? '%' : '\u20B1';
+}
+
+
 function openVoucherDialog(voucher = null) {
   const { elements: fields } = elements.voucherForm;
 
