@@ -1,3 +1,47 @@
+import { getJson } from './admin-api.js';
+import { formatDate, formatPeso, statusSlug } from './format.js';
+
+const API_BASE = '/api/admin/reports';
+const SERVICES_API = '/api/admin/services';
+const PAGE_URL = 'reports.html';
+
+const elements = {
+  title: document.getElementById('reportTitle'),
+  filters: document.getElementById('reportFilters'),
+  fromMonth: document.getElementById('fromMonth'),
+  toMonth: document.getElementById('toMonth'),
+  serviceSelect: document.getElementById('serviceSelect'),
+  error: document.getElementById('reportError'),
+  status: document.getElementById('reportStatus'),
+  content: document.getElementById('reportContent'),
+  stats: document.querySelectorAll('[data-stat]'),
+  grid: document.getElementById('reportGrid'),
+  menu: document.getElementById('reportMenu'),
+  reportButton: document.querySelector('.nav-link--active[href="reports.html"]'),
+  menuTemplate: document.getElementById('menuItemTemplate'),
+
+  incomeBars: document.getElementById('incomeBars'),
+  incomeStatus: document.getElementById('incomeStatus'),
+  incomeTemplate: document.getElementById('incomeBarTemplate'),
+
+  serviceSection: document.getElementById('serviceSection'),
+  serviceBody: document.getElementById('serviceBody'),
+  serviceTotals: document.querySelectorAll('[data-total]'),
+  serviceTemplate: document.getElementById('serviceRowTemplate'),
+
+  bookingSection: document.getElementById('bookingSection'),
+  bookingWrap: document.getElementById('bookingWrap'),
+  bookingBody: document.getElementById('bookingBody'),
+  bookingStatus: document.getElementById('bookingStatus'),
+  bookingTemplate: document.getElementById('bookingRowTemplate'),
+};
+
+const shortMonthFormat = new Intl.DateTimeFormat('en-US', { month: 'short' });
+const longMonthFormat = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
+
+let services = [];
+let latestRequest = 0;
+
 function readFilters() {
   const params = new URLSearchParams(window.location.search);
   const today = new Date();

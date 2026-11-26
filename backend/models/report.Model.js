@@ -1,3 +1,8 @@
+const { pool } = require('../config/db');
+const { REFERENCE, CLIENT_NAME } = require('./bookingSql');
+
+const SHARE = 'bs.price / NULLIF(b.subtotal, 0)';
+
 async function findSummary(startDate, endDate, statuses) {
   const [[row]] = await pool.query(
     `SELECT COUNT(*) AS bookings,
@@ -93,3 +98,12 @@ async function findServiceBookings(serviceId, startDate, endDate, statuses) {
   );
   return rows;
 }
+
+module.exports = {
+  findSummary,
+  findServiceSummary,
+  findMonthlyIncome,
+  findServiceMonthlyIncome,
+  findBookingsByService,
+  findServiceBookings,
+};
