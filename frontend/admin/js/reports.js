@@ -1,3 +1,30 @@
+function readFilters() {
+  const params = new URLSearchParams(window.location.search);
+  const today = new Date();
+
+  return {
+    from: params.get('from') || toMonthKey(new Date(today.getFullYear(), 0, 1)),
+    to: params.get('to') || toMonthKey(today),
+    serviceId: params.get('serviceId') || '',
+  };
+}
+
+function currentFilters() {
+  return {
+    from: elements.fromMonth.value,
+    to: elements.toMonth.value,
+    serviceId: elements.serviceSelect.value,
+  };
+}
+
+function toQuery({ from, to, serviceId }) {
+  const params = new URLSearchParams({ from, to });
+  if (serviceId) params.set('serviceId', serviceId);
+
+  return params.toString();
+}
+
+
 function renderSummary({ summary }) {
   elements.stats.forEach((element) => {
     element.textContent = formatPeso(summary[element.dataset.stat]);
@@ -36,3 +63,61 @@ function renderIncome({ monthlyIncome }) {
   elements.incomeStatus.hidden = hasIncome;
 }
 
+async function loadReport() {
+  const requestId = ++latestRequest;
+  const filters = currentFilters();
+
+  elements.error.hidden = true;
+  elements.status.textContent = 'Loading report...';
+  elements.status.hidden = false;
+
+  try {
+    const report = await getJson(`${API_BASE}?${toQuery(filters)}`);
+
+    if (requestId !== latestRequest) return;
+
+    renderReport(report, filters);
+    updateMenu(filters);
+    window.history.replaceState(null, '', `${PAGE_URL}?${toQuery(filters)}`);
+  } catch (error) {
+    if (requestId !== latestRequest) return;
+
+    console.error('Could not load report:', error);
+    elements.content.hidden = true;
+    elements.status.hidden = true;
+    showError(Object.values(error.fieldErrors ?? {})[0] || error.message);
+  }
+}
+
+elements.filters.addEventListener('change', () => {
+  const { from, to } = currentFilters();
+
+  if (from && to) loadReport();
+});
+
+elements.filters.addEventListener('submit', (event) => event.preventDefault());
+
+elements.reportButton.addEventListener('click', (event) => {
+  event.preventDefault();
+  const expanded = elements.reportButton.getAttribute('aria-expanded') === 'true';
+  elements.reportButton.setAttribute('aria-expanded', String(!expanded));
+  elements.menu.hidden = expanded;
+  if (!expanded) elements.menu.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+async function init() {
+  const filters = readFilters();
+
+  elements.fromMonth.value = filters.from;
+  elements.toMonth.value = filters.to;
+
+  await loadServices();
+
+  const isKnownService = services.some((service) => String(service.id) === filters.serviceId);
+  elements.serviceSelect.value = isKnownService ? filters.serviceId : '';
+
+  loadReport();
+}
+
+init();
