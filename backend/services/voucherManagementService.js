@@ -1,4 +1,19 @@
-  const codeTakenError = () =>
+ const voucherModel = require('../models/voucherModel');
+const AppError = require('./appError');
+const { withTransaction } = require('../config/db');
+const { isValidIsoDate } = require('./timeHelper');
+const { canSetUsageLimit, getRemainingUses, getSafeCount } = require('./voucherUsageRules');
+
+const MYSQL_DUPLICATE_ENTRY = 'ER_DUP_ENTRY';
+
+const DISCOUNT_TYPES = ['Percentage', 'Fixed'];
+const MAX_NAME_LENGTH = 100;
+const CODE_PATTERN = /^[A-Z0-9]{3,30}$/;
+const VALUE_PATTERN = /^\d{1,8}(\.\d{1,2})?$/;
+const LIMIT_PATTERN = /^\d{1,4}$/;
+const REQUIRED_MESSAGE = 'This field is required.';
+ 
+ const codeTakenError = () =>
     new AppError('A voucher with this code already exists.', 409, {
       code: 'A voucher with this code already exists.',
     });
@@ -82,3 +97,5 @@ async function createVoucher(body) {
     throw error;
   }
 }
+
+module.exports = { createVoucher };
