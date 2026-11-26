@@ -1,3 +1,39 @@
+function createCard(voucher) {
+  const card = elements.cardTemplate.content.firstElementChild.cloneNode(true);
+  const tag = card.querySelector('.voucher-card__tag');
+  const usageLimit = toCount(voucher.usageLimit);
+  const usedCount = toCount(voucher.usedCount);
+  const remainingUses = getRemainingUses(voucher);
+  const usedPercent = usageLimit > 0 ? Math.min(100, (usedCount / usageLimit) * 100) : 0;
+  const meter = card.querySelector('.voucher-card__meter');
+
+  card.dataset.id = voucher.id;
+  card.classList.toggle('voucher-card--expired', voucher.expired);
+  card.classList.toggle('voucher-card--exhausted', !voucher.expired && remainingUses === 0);
+
+  card.querySelector('.voucher-card__code').textContent = voucher.code;
+  card.querySelector('.voucher-card__value').textContent = formatDiscount(voucher);
+  card.querySelector('.voucher-card__name').textContent = voucher.name;
+  card.querySelector('.voucher-card__period').textContent =
+    `${formatDate(voucher.startDate)} \u2013 ${formatDate(voucher.endDate)}`;
+  card.querySelector('.voucher-card__remaining').textContent = `${remainingUses} / ${usageLimit}`;
+  card.querySelector('.voucher-card__usage-note').textContent =
+    `${usedCount} of ${usageLimit} ${usageLimit === 1 ? 'use' : 'uses'} redeemed`;
+  meter.setAttribute('aria-valuenow', String(Math.min(usageLimit, usedCount)));
+  meter.setAttribute('aria-valuemax', String(usageLimit));
+  meter.setAttribute('aria-valuetext', `${usedCount} of ${usageLimit} redemptions used`);
+  card.querySelector('.voucher-card__meter-fill').style.width = `${usedPercent}%`;
+
+  tag.textContent = voucher.expired ? 'Expired' : remainingUses === 0 ? 'Fully redeemed' : 'Active';
+  tag.classList.toggle('tag--overdue', voucher.expired);
+  tag.classList.toggle('voucher-card__tag--exhausted', !voucher.expired && remainingUses === 0);
+
+  card.querySelector('[data-action="edit"]').setAttribute('aria-label', `Edit ${voucher.code}`);
+  card.querySelector('[data-action="remove"]').setAttribute('aria-label', `Remove ${voucher.code}`);
+
+  return card;
+}
+
 function updateDiscountPrefix() {
   elements.discountPrefix.textContent = elements.voucherForm.elements.discountType.value === 'Percentage' ? '%' : '\u20B1';
 }
