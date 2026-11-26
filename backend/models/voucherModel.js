@@ -49,6 +49,15 @@ async function create({ code, name, discountType, discountValue, startDate, endD
   return result.insertId;
 }
 
+async function incrementUsedCount(executor, id) {
+  const [result] = await executor.query(
+    'UPDATE voucher SET used_count = used_count + 1 WHERE voucher_id = ? AND used_count < usage_limit',
+    [id]
+  );
+  return result.affectedRows === 1;
+}
+
+
 module.exports = {
   findAll,
   findById,

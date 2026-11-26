@@ -85,6 +85,8 @@ function validateFields(fields) {
   }
 }
 
+
+
 async function createVoucher(body) {
   const fields = normalizeFields(body);
   validateFields(fields);
